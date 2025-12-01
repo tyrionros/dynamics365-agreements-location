@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logical Names of Dynamics 365 Field Service Tables</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: #0056b3;
+        }
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+        dl {
+            margin-left: 20px;
+        }
+        dt {
+            font-weight: bold;
+            margin-top: 10px;
+            color: #d9534f;
+        }
+        dd {
+            margin-bottom: 5px;
+        }
+        code {
+            background-color: #e9e9e9;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .note {
+            background-color: #e6f7ff;
+            border-left: 5px solid #007bff;
+            padding: 10px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Logical Names of Dynamics 365 Field Service Tables in Documentation</h1>
+        <p>This document defines the logical names of the key Dynamics 365 Field Service tables (entities) discussed in the previously generated HTML and Markdown documentation related to agreements, functional locations, service zones, and service tasks. Understanding these logical names is crucial for development, integration, and advanced reporting within Dynamics 365.</p>
+
+        <h2>Core Entities and Their Logical Names</h2>
+        <p>Here are the entities involved and their corresponding logical names, which are typically used when referencing these tables programmatically (e.g., in FetchXML, Web API calls, or custom code):</p>
+
+        <dl>
+            <dt>Account</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>account</code></li>
+                    <li><strong>Description:</strong> Represents a customer, company, or organization. In our scenario, this would be your tenants who are renting parking spaces. Agreements are always associated with an Account.</li>
+                </ul>
+            </dd>
+
+            <dt>Agreement</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>msdyn_agreement</code></li>
+                    <li><strong>Description:</strong> Defines recurring work or services for a customer over a specified period. This entity automates the creation of Work Orders and Invoices.</li>
+                </ul>
+            </dd>
+
+            <dt>Agreement Booking Setup</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>msdyn_agreementbookingsetup</code></li>
+                    <li><strong>Description:</strong> A child record of an Agreement, it specifies the details of the recurring work to be performed. This includes the frequency, incident type, and importantly, the Customer Asset it pertains to.</li>
+                </ul>
+            </dd>
+
+            <dt>Customer Asset</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>msdyn_customerasset</code></li>
+                    <li><strong>Description:</strong> Represents a piece of equipment, property, or item that a customer owns or rents, for which services are provided. In your scenario, each individual parking space is a Customer Asset.</li>
+                </ul>
+            </dd>
+
+            <dt>Functional Location</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>msdyn_functionallocation</code></li>
+                    <li><strong>Description:</strong> Represents a spatial position where work can be performed or equipment can be installed. It helps organize physical spaces hierarchically (e.g., parking lot > section > level).</li>
+                </ul>
+            </dd>
+
+            <dt>Work Order</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>msdyn_workorder</code></li>
+                    <li><strong>Description:</strong> Represents a task or set of tasks to be performed by a field technician. Work Orders are generated from Agreement Booking Setups.</li>
+                </ul>
+            </dd>
+
+            <dt>Incident Type</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>msdyn_incidenttype</code></li>
+                    <li><strong>Description:</strong> A template that defines a common problem or type of work. It specifies required Service Tasks, products, and services for a particular job.</li>
+                </ul>
+            </dd>
+
+            <dt>Service Task</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>msdyn_servicetask</code> (Note: Service Tasks are typically associated *with* an Incident Type; the `msdyn_servicetask` entity often refers to the *definition* of a task, which is then linked to an Incident Type via `msdyn_incidenttypeservicetask` or directly as `msdyn_workorderservicetask` on a Work Order.)</li>
+                    <li><strong>More precisely, when defining tasks within an Incident Type, you'd be looking at the `Incident Type Service Task` entity:</strong>
+                        <ul>
+                            <li><strong>Logical Name:</strong> <code>msdyn_incidenttypeservicetask</code></li>
+                            <li><strong>Description:</strong> Links a specific Service Task definition (<code>msdyn_servicetask</code>) to an Incident Type (<code>msdyn_incidenttype</code>), defining the steps for that type of work.</li>
+                        </ul>
+                    </li>
+                </ul>
+            </dd>
+
+            <dt>Service Zone</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>territory</code> (This is the underlying entity used for Service Zones in Field Service, although it might be surfaced as "Service Zone" in the UI).</li>
+                    <li><strong>Description:</strong> Represents a geographical area or logical grouping used for organizing resources and dispatching work.</li>
+                </ul>
+            </dd>
+
+            <dt>Bookable Resource</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>bookableresource</code></li>
+                    <li><strong>Description:</strong> Represents a technician, equipment, or facility that can be scheduled for work. (Implicitly involved in scheduling work orders that use service zones).</li>
+                </ul>
+            </dd>
+
+            <dt>Booking Status</dt>
+            <dd>
+                <ul>
+                    <li><strong>Logical Name:</strong> <code>bookingstatus</code></li>
+                    <li><strong>Description:</strong> Defines the status of a Bookable Resource Booking (e.g., Scheduled, In Progress, Completed). (Relevant to Work Order scheduling).</li>
+                </ul>
+            </dd>
+        </dl>
+
+        <p class="note">
+            This list covers the primary entities that are central to managing agreements, assets, locations, and services within Dynamics 365 Field Service, as they relate to your facility management scenario. Understanding these logical names is crucial for anyone working with the underlying data model of Dynamics 365.
+        </p>
+
+    </div>
+</body>
+</html>
