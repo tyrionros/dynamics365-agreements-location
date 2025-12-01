@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamics 365 Field Service: Facility Management Without Customer Assets</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: #0056b3;
+        }
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+        ol {
+            list-style-type: decimal;
+            margin-left: 20px;
+        }
+        code {
+            background-color: #e9e9e9;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .note {
+            background-color: #e6f7ff;
+            border-left: 5px solid #007bff;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .important {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .entity {
+            font-weight: bold;
+            color: #d9534f;
+        }
+        .concept {
+            font-weight: bold;
+            color: #5cb85c;
+        }
+        .action {
+            font-style: italic;
+            color: #0275d8;
+        }
+        .illustration-box {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 20px 0;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dynamics 365 Field Service: Facility Management Without Customer Assets</h1>
+        <p>This document explores an alternative approach to managing rented parking spaces in Dynamics 365 Field Service, focusing on leveraging <span class="concept">Agreements</span>, <span class="concept">Service Zones</span>, and <span class="concept">Service Tasks</span> for automatic invoicing (monthly and yearly), *without* utilizing the <span class="entity">Customer Asset</span> table.</p>
+
+        <h2>Introduction: Deviating from the Standard Model</h2>
+        <p>The standard Dynamics 365 Field Service model often relies heavily on <span class="entity">Customer Assets</span> to represent specific equipment or locations being serviced, linking them directly to <span class="entity">Functional Locations</span> and then to <span class="entity">Agreement Booking Setups</span>. This provides granular asset tracking and service history.</p>
+        <p>However, for a scenario like rented parking spaces, where the "asset" is largely a fixed, non-repairable location and the primary need is recurring billing and occasional checks, you might consider simplifying the setup by *not* creating a <span class="entity">Customer Asset</span> for each parking spot.</p>
+
+        <h3>Trade-offs of this approach:</h3>
+        <ul>
+            <li><strong>Less Granular Asset History:</strong> You won't have a dedicated <span class="entity">Customer Asset</span> record to track individual service history directly for each parking spot.</li>
+            <li><strong>Reliance on Functional Locations and Naming Conventions:</strong> More emphasis will be placed on the <span class="entity">Functional Location</span> hierarchy and clear naming conventions within <span class="entity">Agreements</span> to identify specific parking spaces.</li>
+            <li><strong>Potential Reporting Adjustments:</strong> Some standard Field Service reports might assume <span class="entity">Customer Assets</span>, requiring custom reports for asset-specific data.</li>
+        </ul>
+
+        <hr>
+
+        <h2>Key Entities and Their Roles in this Approach</h2>
+        <p>In this alternative model, the following entities take on slightly adjusted or more prominent roles:</p>
+        <ul>
+            <li><strong>Account (<code>account</code>):</strong> Still represents your tenants (customers). Each agreement will be tied to a tenant's account.</li>
+            <li><strong>Functional Location (<code>msdyn_functionallocation</code>):</strong> This entity becomes crucial for uniquely identifying each individual parking space. Instead of linking a <span class="entity">Customer Asset</span> to it, the <span class="entity">Functional Location</span> itself will represent the specific rented spot.
+                <ul>
+                    <li><strong>Example Hierarchy:</strong>
+                        <ul>
+                            <li>Parent: `Main Building Parking Lot`</li>
+                            <li>Child: `Level 1`</li>
+                            <li>Grandchild: `Space L1-001` (This <span class="entity">Functional Location</span> now represents the physical parking spot.)</li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+            <li><strong>Agreement (<code>msdyn_agreement</code>):</strong> The central record for each tenant's parking space rental contract. Each agreement will typically correspond to one tenant and one specific parking space (<span class="entity">Functional Location</span>). Its name or description should explicitly identify the parking space.</li>
+            <li><strong>Service Zone (<code>territory</code>):</strong> Used for geographical grouping of work if you have technicians assigned to specific areas of your facility. It will be associated with the <span class="entity">Account</span> or <span class="entity">Agreement</span>.</li>
+            <li><strong>Incident Type (<code>msdyn_incidenttype</code>) & Service Task (<code>msdyn_incidenttypeservicetask</code>):</strong> These are still used if you need to define recurring *work* (e.g., a monthly visual check of the parking space). If the agreement is purely for billing, the Incident Type might be very simple or even optional if you primarily use <span class="entity">Agreement Invoice Setups</span>.</li>
+            <li><strong>Agreement Booking Setup (<code>msdyn_agreementbookingsetup</code>):</strong> Used to generate recurring <span class="entity">Work Orders</span>. If you have recurring physical checks of the parking space, you would use this, linking it to an <span class="entity">Incident Type</span>.</li>
+            <li><strong>Agreement Invoice Setup (<code>msdyn_agreementinvoicesetup</code>):</strong> **This entity is critical for automatic billing.** You will use this to define the recurring charges (monthly rent, yearly fees) and their schedules.</li>
+        </ul>
+
+        <hr>
+
+        <h2>Step-by-Step Guide: Managing Parking Spaces Without Customer Assets</h2>
+        <p>Here's how you would set up Dynamics 365 Field Service for this approach:</p>
+
+        <ol>
+            <li>
+                <h4>Define Your Detailed Functional Location Hierarchy:</h4>
+                <ul>
+                    <li><span class="action">Navigate to Field Service > Assets > Functional Locations.</span></li>
+                    <li>Create a hierarchy where the lowest level <span class="entity">Functional Location</span> *uniquely identifies each rentable parking space*.
+                        <ul>
+                            <li>*Example:*
+                                <ul>
+                                    <li>Parent: `Building A Parking Lot`</li>
+                                    <li>Child: `Level 1`</li>
+                                    <li>Grandchild: `Space L1-001` (This <span class="entity">Functional Location</span> now represents the physical parking spot.)</li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li><strong>Key:</strong> Ensure each such <span class="entity">Functional Location</span> has a clear, identifiable name.</li>
+                </ul>
+                <div class="illustration-box">
+                    <p><strong>Illustration: Detailed Functional Location Hierarchy</strong></p>
+                    <code>Main Building Parking Lot (Functional Location)</code><br>
+                    <code>└── Section A (Functional Location)</code><br>
+                    <code>    └── Space A-101 (Functional Location - Individual Parking Spot)</code><br>
+                    <code>    └── Space A-102 (Functional Location - Individual Parking Spot)</code>
+                </div>
+            </li>
+            <li>
+                <h4>Create / Identify the Customer Account:</h4>
+                <p>Ensure you have an <span class="entity">Account</span> record in Dynamics 365 for each tenant.</p>
+            </li>
+            <li>
+                <h4>Create the Agreement (per Tenant, per Parking Space):</h4>
+                <ul>
+                    <li><span class="action">Navigate to Field Service > Agreements > Agreements.</span></li>
+                    <li>Create a new <span class="entity">Agreement</span> record for each tenant's rental of a specific parking space.</li>
+                    <li>Set the <strong>"Service Account"</strong> to the tenant's account.</li>
+                    <li><strong>Crucial:</strong> Use the <strong>"Name"</strong> and/or <strong>"Description"</strong> fields to clearly state which parking space (<span class="entity">Functional Location</span>) this agreement pertains to (e.g., "Agreement: Tenant X - Parking Space A-101 Rental"). This acts as your direct identifier.</li>
+                    <li>Define the "Start Date" and "End Date" for the rental period.</li>
+                </ul>
+            </li>
+            <li>
+                <h4>Set Up Service Zones (if applicable):</h4>
+                <p>Assign the appropriate <span class="entity">Service Zone</span> to the tenant's <span class="entity">Account</span>, or directly to the <span class="entity">Agreement</span> if the zone differs. This helps with technician dispatch if work orders are generated.</p>
+            </li>
+            <li>
+                <h4>Optional: Agreement Booking Setup for Recurring Work (e.g., Inspections):</h4>
+                <ul>
+                    <li>If you need to generate <span class="entity">Work Orders</span> for physical inspections or maintenance of the parking space:
+                        <ul>
+                            <li>Create a new <span class="entity">Incident Type</span> (e.g., "Parking Space Visual Check") and associate relevant <span class="entity">Service Tasks</span> (e.g., "Check for litter," "Verify markings").</li>
+                            <li>Add a new <span class="entity">Agreement Booking Setup</span> to the Agreement.</li>
+                            <li>Set the "Incident Type" to your newly created "Parking Space Visual Check".</li>
+                            <li>Define the "Booking Recurrence" (e.g., "Monthly").</li>
+                            <li><strong>Important:</strong> On the <span class="entity">Agreement Booking Setup</span>, you can set the <strong>"Primary Incident Functional Location"</strong> field to the specific <span class="entity">Functional Location</span> representing the parking space (e.g., "Space A-101"). This directly links the generated <span class="entity">Work Order</span> to the parking space's functional location.</li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="illustration-box">
+                    <p><strong>Illustration: Agreement Booking Setup linking to Functional Location</strong></p>
+                    <p><strong>Agreement:</strong> Tenant X Corp - Parking Space A-101 Rental</p>
+                    <p><strong>Agreement Booking Setup:</strong> Monthly Visual Check - Space A-101</p>
+                    <ul>
+                        <li>Recurrence: Monthly</li>
+                        <li>Incident Type: Parking Space Visual Check</li>
+                        <li><strong>Primary Incident Functional Location: "Space A-101"</strong></li>
+                    </ul>
+                </div>
+            </li>
+            <li>
+                <h4>Mandatory: Agreement Invoice Setup for Automatic Invoicing:</h4>
+                <p>This is the core for generating invoices.</p>
+                <ul>
+                    <li>Add new <span class="entity">Agreement Invoice Setups</span> to the Agreement. You'll likely need separate ones for monthly and yearly charges.</li>
+                    <li>For <strong>Monthly Rent:</strong>
+                        <ul>
+                            <li>Create an <span class="entity">Agreement Invoice Setup</span> (e.g., "Monthly Parking Rent").</li>
+                            <li>Add an <span class="entity">Agreement Invoice Product</span> with a product like "Parking Space Rental - Monthly" and the corresponding price.</li>
+                            <li>Define the "Invoice Recurrence" as "Monthly".</li>
+                        </ul>
+                    </li>
+                    <li>For <strong>Yearly Administrative Fee (or similar):</strong>
+                        <ul>
+                            <li>Create another <span class="entity">Agreement Invoice Setup</span> (e.g., "Yearly Admin Fee").</li>
+                            <li>Add an <span class="entity">Agreement Invoice Product</span> with a product like "Annual Admin Fee" and its price.</li>
+                            <li>Define the "Invoice Recurrence" as "Yearly".</li>
+                        </ul>
+                    </li>
+                </ul>
+                <div class="illustration-box">
+                    <p><strong>Illustration: Agreement Invoice Setups for Monthly and Yearly Billing</strong></p>
+                    <p><strong>Agreement:</strong> Tenant X Corp - Parking Space A-101 Rental</p>
+                    <p><strong>Agreement Invoice Setup 1:</strong> Monthly Parking Rent</p>
+                    <ul>
+                        <li>Invoice Recurrence: Monthly</li>
+                        <li>Agreement Invoice Products: "Parking Space Rental - Monthly" ($100)</li>
+                    </ul>
+                    <p><strong>Agreement Invoice Setup 2:</strong> Yearly Admin Fee</p>
+                    <ul>
+                        <li>Invoice Recurrence: Yearly</li>
+                        <li>Agreement Invoice Products: "Annual Admin Fee" ($50)</li>
+                    </ul>
+                </div>
+            </li>
+            <li>
+                <h4>Activate the Agreement:</h4>
+                <p>Once all booking (if any) and invoice setups are configured, change the <span class="entity">Agreement</span>'s "System Status" to "Active". This will trigger the automatic generation of <span class="entity">Work Orders</span> (if Booking Setups exist) and Invoices according to their defined recurrences.</p>
+            </li>
+        </ol>
+
+        <h2>How it All Connects (Without Customer Assets)</h2>
+        <div class="illustration-box">
+            <p><strong>Flow: Agreement to Functional Location (Direct/Implicit) for Billing/Work</strong></p>
+            <p><span class="entity">Account (Tenant)</span> <span class="action">--has--></span> <span class="entity">Agreement</span></p>
+            <p><span class="entity">Agreement</span> <span class="action">--is for (named/described as)--></span> <span class="entity">Functional Location (Space A-101)</span></p>
+            <p>    ↓</p>
+            <p><span class="entity">Agreement Invoice Setup</span> <span class="action">--generates invoices for--></span> <span class="entity">Agreement</span></p>
+            <p>    ↓ (if physical work is involved)</p>
+            <p><span class="entity">Agreement Booking Setup</span> <span class="action">--generates Work Orders for--></span> <span class="entity">Functional Location (Space A-101)</span></p>
+            <p>    ↓</p>
+            <p><span class="entity">Work Order</span> <span class="action">--has primary Incident Functional Location--></span> <span class="entity">Functional Location (Space A-101)</span></p>
+        </div>
+
+        <h2>Conclusion</h2>
+        <div class="important">
+            <p>This approach allows you to manage rented parking spaces and automate invoicing without using <span class="entity">Customer Assets</span>. It relies heavily on a well-structured <span class="entity">Functional Location</span> hierarchy to represent individual parking spots and clear naming conventions within your <span class="entity">Agreements</span>. While it simplifies asset tracking, it shifts the responsibility for associating services and billing to the <span class="entity">Agreement</span> and its relationship with a specific <span class="entity">Functional Location</span>. Ensure your reporting needs are met with this model, possibly requiring custom reports to aggregate data by <span class="entity">Functional Location</span> rather than <span class="entity">Customer Asset</span>.</p>
+        </div>
+
+    </div>
+</body>
+</html>
