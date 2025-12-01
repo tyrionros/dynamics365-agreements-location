@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamics 365 Field Service: Agreements and Functional Locations</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: #0056b3;
+        }
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+        ol {
+            list-style-type: decimal;
+            margin-left: 20px;
+        }
+        code {
+            background-color: #e9e9e9;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .note {
+            background-color: #e6f7ff;
+            border-left: 5px solid #007bff;
+            padding: 10px;
+            margin: 15px 0;
+        }
+        .illustration-box {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin: 20px 0;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .entity {
+            font-weight: bold;
+            color: #d9534f;
+        }
+        .action {
+            font-style: italic;
+            color: #5cb85c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Dynamics 365 Field Service: Connecting Agreements to Functional Locations for Facility Management</h1>
+        <p>This document explains how to connect a recurring agreement to a functional location in Dynamics 365 Field Service, specifically for managing rented parking spaces within a facility.</p>
+
+        <h2>1. Understanding Key Concepts</h2>
+
+        <h3>1.1 Functional Locations</h3>
+        <p>A <span class="entity">Functional Location</span> represents a spatial position where work can be performed, or equipment can be installed. It's a hierarchical structure that helps organize your physical spaces and assets. In your scenario:</p>
+        <ul>
+            <li>Your overall facility (e.g., "Main Building Parking Lot") can be a top-level Functional Location.</li>
+            <li>Individual parking sections (e.g., "Section A", "Underground Level 1") can be sub-locations.</li>
+            <li>Each individual parking space (e.g., "Space A-101", "UL1-005") would typically be represented as a <span class="entity">Customer Asset</span> linked to its Functional Location.</li>
+        </ul>
+        <div class="illustration-box">
+            <p><strong>Illustration: Functional Location Hierarchy</strong></p>
+            <code>Main Building Parking Lot (Functional Location)</code><br>
+            <code>└── Section A (Functional Location)</code><br>
+            <code>    └── Space A-101 (Customer Asset, linked to Section A)</code><br>
+            <code>    └── Space A-102 (Customer Asset, linked to Section A)</code><br>
+            <code>└── Underground Level 1 (Functional Location)</code><br>
+            <code>    └── Space UL1-001 (Customer Asset, linked to Underground Level 1)</code>
+        </div>
+
+        <h3>1.2 Agreements</h3>
+        <p>An <span class="entity">Agreement</span> in Field Service defines recurring work for a customer over a specific period. This is perfect for managing your parking space rentals, where tenants (customers) have recurring obligations or services (e.g., monthly parking fee, scheduled inspections of the space).</p>
+        <p>Agreements automate the generation of Work Orders, Invoices, and other related records based on predefined schedules.</p>
+
+        <h3>1.3 Customer Assets</h3>
+        <p>A <span class="entity">Customer Asset</span> represents a piece of equipment, property, or anything that a customer owns or rents, for which you provide services. In your case, each individual parking space should be set up as a Customer Asset. These assets are crucial as they are the direct link between the agreement's service scope and the physical location.</p>
+
+        <h2>2. Connecting an Agreement to a Functional Location (via Customer Asset)</h2>
+        <p>The direct connection between an Agreement and a Functional Location is typically established through a <span class="entity">Customer Asset</span> that resides at that Functional Location.</p>
+
+        <h3>Step-by-Step Guide:</h3>
+        <ol>
+            <li>
+                <h4>Create / Identify the Customer Account</h4>
+                <p>Ensure you have an existing <span class="entity">Account</span> record in Dynamics 365 representing your tenant (the customer renting the parking space).</p>
+            </li>
+            <li>
+                <h4>Define Your Functional Location Hierarchy</h4>
+                <p><span class="action">Navigate to Field Service > Assets > Functional Locations.</span></p>
+                <p>Create the necessary Functional Locations that represent your parking facility structure (e.g., "Main Parking Lot", "Section A"). Ensure that parent-child relationships are correctly set up.</p>
+            </li>
+            <li>
+                <h4>Create / Link the Customer Asset (Parking Space)</h4>
+                <p><span class="action">Navigate to Field Service > Assets > Customer Assets.</span></p>
+                <ul>
+                    <li>Create a new <span class="entity">Customer Asset</span> for each individual parking space (e.g., "Parking Space A-101").</li>
+                    <li><strong>Crucially, set the "Functional Location" field on the Customer Asset record to the appropriate Functional Location (e.g., "Section A").</strong> This links the parking space (asset) to its physical location.</li>
+                    <li>Set the "Account" field to your tenant's customer account.</li>
+                </ul>
+                <div class="illustration-box">
+                    <p><strong>Illustration: Customer Asset linked to Functional Location</strong></p>
+                    <p><strong>Customer Asset:</strong> Parking Space A-101</p>
+                    <ul>
+                        <li>Account: "Tenant X Corp"</li>
+                        <li><strong>Functional Location: "Section A"</strong></li>
+                        <li>(Other relevant details for the parking space)</li>
+                    </ul>
+                </div>
+            </li>
+            <li>
+                <h4>Create the Agreement</h4>
+                <p><span class="action">Navigate to Field Service > Agreements > Agreements.</span></p>
+                <ul>
+                    <li>Create a new <span class="entity">Agreement</span> record.</li>
+                    <li>Set the "Service Account" to your tenant's customer account.</li>
+                    <li>Define the "Start Date" and "End Date" for the rental period.</li>
+                    <li>Set the "System Status" to "Active" once configured.</li>
+                </ul>
+            </li>
+            <li>
+                <h4>Add Agreement Booking Setup to the Agreement</h4>
+                <p>Within the new Agreement record, go to the "Booking Setups" tab or related records and <span class="action">create a new Agreement Booking Setup.</span></p>
+                <p>This is where you define the recurring work that the agreement covers. For a parking space, this might be a monthly inspection, a scheduled cleaning, or simply the recurring charge for rent (though billing is often handled by Agreement Invoice Setups).</p>
+                <ul>
+                    <li>Set a "Name" for the booking setup (e.g., "Monthly Parking Space Inspection").</li>
+                    <li>Define the "Work Order Type" (e.g., "Inspection").</li>
+                    <li>Set the "Booking Recurrence" to define how often work orders should be generated (e.g., "Monthly").</li>
+                    <li><strong>Important: In the "Relates To" section of the Agreement Booking Setup, set the "Primary Incident Customer Asset" field to the specific <span class="entity">Customer Asset</span> you created for the parking space (e.g., "Parking Space A-101").</strong></li>
+                </ul>
+                <div class="illustration-box">
+                    <p><strong>Illustration: Agreement Booking Setup linking to Customer Asset</strong></p>
+                    <p><strong>Agreement:</strong> Tenant X Corp - Parking Space A-101 Rental</p>
+                    <p><strong>Agreement Booking Setup:</strong> Monthly Inspection - Parking Space A-101</p>
+                    <ul>
+                        <li>Recurrence: Monthly</li>
+                        <li>Work Order Type: Inspection</li>
+                        <li><strong>Primary Incident Customer Asset: "Parking Space A-101"</strong></li>
+                    </ul>
+                </div>
+            </li>
+            <li>
+                <h4>Activate the Agreement</h4>
+                <p>Once all booking and invoice setups are configured, change the <span class="entity">Agreement</span>'s "System Status" to "Active". This will start the process of generating Work Orders and Invoices based on your defined recurrences.</p>
+            </li>
+        </ol>
+
+        <h2>3. How it All Connects</h2>
+        <div class="illustration-box">
+            <p><strong>Flow: Agreement to Functional Location</strong></p>
+            <p><span class="entity">Agreement</span> <span class="action">--covers services for--></span> <span class="entity">Customer Account (Tenant)</span></p>
+            <p>    ↓</p>
+            <p><span class="entity">Agreement Booking Setup</span> <span class="action">--targets--></span> <span class="entity">Customer Asset (Parking Space A-101)</span></p>
+            <p>    ↓</p>
+            <p><span class="entity">Customer Asset (Parking Space A-101)</span> <span class="action">--is located at--></span> <span class="entity">Functional Location (Section A)</span></p>
+            <p>    ↓</p>
+            <p><span class="entity">Functional Location (Section A)</span> <span class="action">--is part of--></span> <span class="entity">Functional Location (Main Building Parking Lot)</span></p>
+        </div>
+        <p class="note">
+            <strong>Note:</strong> While an Agreement doesn't directly link to a Functional Location, the Customer Asset acts as the bridge. Any Work Orders generated from the Agreement Booking Setup will inherit the Customer Asset, and thus indirectly, the Functional Location information.
+            You can also add Agreement Service Assets directly to an Agreement and link them to a Functional Location at that point. However, associating assets with Functional Locations first provides a clearer organizational structure.
+        </p>
+
+    </div>
+</body>
+</html>
